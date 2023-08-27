@@ -7,6 +7,10 @@ import (
 	"os"
 )
 
+type application struct {
+	errorLog *log.Logger
+	infoLog *log.Logger
+}
 
 func main() {
 	// Define a new command-line flag with the name 'addr', a default value of ":4000"
@@ -24,17 +28,10 @@ func main() {
 	infoLog := log.New(os.Stdout, "INFO\t", log.Ldate|log.Ltime)
 	errorLog := log.New(os.Stderr, "ERR\t", log.Ldate|log.Ltime)
 
-	//create http server multiplexer/request router provides a way to
-	//route incoming http  requests to their respective URL path
-	mux := http.NewServeMux()
-	fileServer := http.FileServer(http.Dir("./ui/static/"))
-
-	mux.Handle("/static/", http.StripPrefix("/static", fileServer))
-	//HandleFunc adds serveHTTP method to passed in handler function thereby
-	//making it adhere to the Handler interface and can be used.
-	mux.HandleFunc("/", home)
-	mux.HandleFunc("snippet/view", snippetView)
-	mux.HandleFunc("snippet/create", snippetCreate)
+	app := &application{
+		errorLog: errorLog,
+		infoLog: infoLog,
+	}
 
 	//flag.String() returns a pointer to addr, derefernce to access port
 	infoLog.Printf("starting server on %s", *addr)
@@ -44,7 +41,7 @@ func main() {
 	srv := &http.Server{
 		Addr : *addr,
 		ErrorLog: errorLog,
-		Handler: mux,
+		Handler: app.routes(),
 	}
 
 	err := srv.ListenAndServe()
